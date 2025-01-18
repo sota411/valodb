@@ -94,7 +94,7 @@ class AccountRegisterModal(discord.ui.Modal):
         )
 
 # /register コマンド
-@tree.command(name="register", description="新しいアカウントを登録します")
+@tree.command(name="register", description="新規アカウントを登録します")
 async def register(interaction: discord.Interaction):
     await interaction.response.send_modal(AccountRegisterModal())
 
