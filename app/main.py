@@ -402,7 +402,7 @@ REEL_STOP_DELAYS = [0.7, 1.4, 2.1]
 SPECIAL_EFFECT_DELAY = 0.1
 
 # 基本ディレクトリの絶対パス（環境に合わせて変更）
-BASE_DIR = os.path.join("valodb", "app", "kabaneri")
+BASE_DIR = os.path.join("app", "kabaneri")
 
 # 各リールの初期状態は回転中の GIF 画像
 REEL_GIFS = [
