@@ -431,7 +431,7 @@ REEL_FINAL_IMAGES = [
 SPECIAL_WIN_GIF = os.path.join(BASE_DIR, "sp.gif")
 
 # 再生する音声ファイル
-ROKKON_AUDIO_FILE = os.path.join("valodb", "app", "kabaneri", "rokkon.mp3")
+ROKKON_AUDIO_FILE = os.path.join("app", "kabaneri", "rokkon.mp3")
 FFMPEG_PATH = "ffmpeg"
 
 @tree.command(name="kabaneri", description="六根清浄！")
