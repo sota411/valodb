@@ -83,12 +83,14 @@ class AccountRegisterModal(discord.ui.Modal):
         rank = self.children[3].value
 
         try:
-            sheet.append_row([name, account_id, password, rank, "available"])
+            await asyncio.get_event_loop().run_in_executor(
+                None, sheet.append_row, [name, account_id, password, rank, "available"]
+            )
         except Exception as e:
             logging.error(f"スプレッドシートへの書き込みエラー: {e}")
             await interaction.response.send_message("アカウントの登録に失敗しました。", ephemeral=True)
             return
-
+            
         await interaction.response.send_message(
             f"アカウント **{name}** を登録しました！", ephemeral=True
         )
@@ -104,7 +106,9 @@ async def auto_return_account(user_id: int, account: dict, guild_id: int, channe
     await asyncio.sleep(5 * 60 * 60)  # 5時間待機
     try:
         logging.info(f"自動返却処理開始: User ID={user_id}, Account={account['name']}")
-        sheet.update_cell(account["row"], 5, "available")
+        await asyncio.get_event_loop().run_in_executor(
+            None, sheet.update_cell, account["row"], 5, "available"
+        )
         borrowed_accounts.pop(user_id, None)
         user_status.pop(user_id, None)
         guild = bot.get_guild(guild_id)
@@ -141,7 +145,7 @@ async def use_account(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
 
     try:
-        accounts = sheet.get_all_records()
+        accounts = await asyncio.get_event_loop().run_in_executor(None, sheet.get_all_records)
     except Exception as e:
         logging.error(f"スプレッドシートからデータ取得中にエラーが発生しました: {e}")
         await interaction.followup.send(
@@ -177,7 +181,9 @@ async def use_account(interaction: discord.Interaction):
                 acc for acc in available_accounts if acc["name"] == self.values[0]
             )
             try:
-                sheet.update_cell(selected_account["row"], 5, "borrowed")
+                await asyncio.get_event_loop().run_in_executor(
+                    None, sheet.update_cell, selected_account["row"], 5, "borrowed"
+                )
             except Exception as e:
                 logging.error(f"スプレッドシートの状態更新中にエラーが発生しました: {e}")
                 await interaction.response.send_message(
@@ -269,7 +275,9 @@ async def return_account(interaction: discord.Interaction):
             new_rank = self.children[0].value
             if new_rank != account["rank"]:
                 try:
-                    sheet.update_cell(account["row"], 4, new_rank)
+                    await asyncio.get_event_loop().run_in_executor(
+                        None, sheet.update_cell, account["row"], 4, new_rank
+                    )
                 except Exception as e:
                     logging.error(f"スプレッドシートのランクセル更新中にエラーが発生しました: {e}")
                     await interaction.response.send_message(
@@ -278,7 +286,9 @@ async def return_account(interaction: discord.Interaction):
                     )
                     return
             try:
-                sheet.update_cell(account["row"], 5, "available")
+                await asyncio.get_event_loop().run_in_executor(
+                    None, sheet.update_cell, account["row"], 5, "available"
+                )
             except Exception as e:
                 logging.error(f"スプレッドシートの状態更新中にエラーが発生しました: {e}")
                 await interaction.response.send_message(
