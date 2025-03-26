@@ -1,29 +1,30 @@
-FROM python:3.11
+# ベースイメージとしてPython 3.10を使用
+FROM python:3.10-slim
 
-# 作業ディレクトリを指定
-WORKDIR /bot
+# 作業ディレクトリを設定
+WORKDIR /app
 
-#ffmpegインストール
-RUN apt-get update && \
-    apt-get install -y ffmpeg locales && \
-    apt-get -y upgrade && \
-    localedef -f UTF-8 -i ja_JP ja_JP.UTF-8
+# 必要なシステムパッケージのインストール
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 
-ENV LANG ja_JP.UTF-8
-ENV LANGUAGE ja_JP:ja
-ENV LC_ALL ja_JP.UTF-8
-ENV TZ Asia/Tokyo
-ENV TERM xterm
+# 依存関係ファイルをコピー
+COPY requirements.txt .
+COPY setup.py .
+COPY README.md .
 
-# requirements.txtをコピーし、依存関係をインストール
-COPY requirements.txt /bot/
-RUN pip install -r requirements.txt
+# アプリケーションのコード全体をコピー
+COPY app/ ./app/
 
-# アプリケーションファイルをコピー
-COPY . /bot
+# 依存関係のインストール
+RUN pip install -e .
 
-# 必要なポートを開放 (keep_alive.pyなどが利用するポート)
+# 環境変数の設定
+ENV PYTHONUNBUFFERED=1
+
+# ヘルスチェック用のポートを公開
 EXPOSE 8080
 
-# コンテナ起動時に実行するコマンド
-CMD python app/main.py
+# アプリケーションの実行
+CMD ["python", "-m", "app.main"]
