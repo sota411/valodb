@@ -1,16 +1,24 @@
-from flask import Flask, request
-from threading import Thread
+import os
+import threading
+from flask import Flask
 
 app = Flask('')
 
-@app.route('/', methods=["GET", "POST"])
+@app.route('/')
 def home():
-    url = request.base_url
-    return f'このページのURLは {url} です'
+    return "Bot is alive!"
+
+@app.route('/health')
+def health_check():
+    return "OK", 200
 
 def run():
     app.run(host='0.0.0.0', port=8080)
 
 def keep_alive():
-    t = Thread(target=run)
-    t.start()
+    """
+    Flaskサーバーをバックグラウンドでデーモンとして起動
+    """
+    server = threading.Thread(target=run)
+    server.daemon = True
+    server.start()

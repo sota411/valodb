@@ -1,0 +1,2 @@
+[console_scripts]
+valodb = app.main:main
