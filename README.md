@@ -10,7 +10,7 @@ Valorantのアカウント管理とランク情報の取得・表示を行うDis
 - ランク更新: `/update_ranks` コマンドで全アカウントのランク情報を更新
 - コメント削除: `/remove_comment` コマンドでチャンネルのコメントを削除
 - 借用状態リセット: `/reset_borrowed` コマンドで借用状態を手動リセット
-- カバネリゲーム: `/kabaneri` コマンドでミニゲームを実行
+- カバネリ: `/kabaneri` コマンドでミニゲームを実行
 
 ## ファイル構成
 
@@ -20,7 +20,7 @@ Valorantのアカウント管理とランク情報の取得・表示を行うDis
 - `accounts.py`: アカウント管理に関する機能
 - `modals.py`: 各種モーダルUI
 - `commands.py`: スラッシュコマンドの実装
-- `kabaneri.py`: カバネリミニゲーム機能
+- `kabaneri.py`: カバネリ機能
 - `keep_alive.py`: Flaskサーバーでのヘルスチェック機能
 
 ## 環境変数
