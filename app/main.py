@@ -276,9 +276,15 @@ async def auto_return_account(user_id: int, account: dict, guild_id: int, channe
             logging.error(f"User ID {user_id} がGuild ID {guild_id}内に見つかりません。")
             return
 
-        await channel.send(
-            f"{user.mention} の **{account['name']}** に自動返却処理を行いました。"
+        # 自動返却処理の埋め込みメッセージを作成して送信
+        embed = discord.Embed(
+            title="自動返却通知",
+            description=f"{user.mention} の **{account['name']}** に自動返却処理を行いました。",
+            color=0xff0000  # 赤色
         )
+        embed.set_footer(text=f"自動返却時刻: {datetime.datetime.now(TOKYO_TZ).strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        await channel.send(embed=embed)
+        
         logging.info(f"自動返却処理完了: User ID={user_id}, Account={account['name']}")
     except Exception as e:
         logging.error(f"自動返却中にエラーが発生しました: {e}")
@@ -445,10 +451,119 @@ async def use_account(interaction: discord.Interaction):
             
             account_details += f"\n**返却期限:** {return_time_str}\n"
             
-            await interaction.followup.send(account_details, ephemeral=True)
-            await interaction.channel.send(
-                f"{interaction.user.mention} が **{selected_account['name']}** を借りました！"
+            # DMに詳細情報を埋め込み形式で送信
+            try:
+                # 埋め込みメッセージを作成
+                dm_embed = discord.Embed(
+                    title=f"アカウント情報: {selected_account['name']}",
+                    description="アカウントの貸出が完了しました。以下の情報を使用してログインしてください。",
+                    color=0x00ff00  # 緑色
+                )
+                
+                # 基本情報フィールド
+                dm_embed.add_field(
+                    name="基本情報",
+                    value=(
+                        f"**Name:** {selected_account['name']}\n"
+                        f"**ID:** {selected_account['id']}\n"
+                        f"**Password:** {selected_account['password']}\n"
+                        f"**Rank:** {selected_account['rank']}{' (自動更新済み)' if rank_update_success else ''}"
+                    ),
+                    inline=False
+                )
+                
+                # Valorantユーザー情報フィールド
+                if "val_username" in selected_account and "val_tag" in selected_account:
+                    dm_embed.add_field(
+                        name="Valorant アカウント",
+                        value=f"{selected_account['val_username']}#{selected_account['val_tag']}",
+                        inline=False
+                    )
+                
+                # Valorantの詳細情報フィールド
+                if rank_info:
+                    dm_embed.add_field(
+                        name="Valorant詳細情報",
+                        value=(
+                            f"**現在のランク:** {rank_info['current_rank']}\n"
+                            f"**ティア内ランキング:** {rank_info['tier_ranking']}\n"
+                            f"**最後のゲームでのMMR変化:** {rank_info['mmr_change']}\n"
+                            f"**ELO:** {rank_info['elo']}\n"
+                            f"**過去最高ランク:** {rank_info['highest_rank']} (シーズン: {rank_info['highest_rank_season']})"
+                        ),
+                        inline=False
+                    )
+                elif "val_username" in selected_account and "val_tag" in selected_account:
+                    dm_embed.add_field(
+                        name="注意",
+                        value="Valorantの詳細情報を取得できませんでした。",
+                        inline=False
+                    )
+                
+                # 返却期限
+                dm_embed.set_footer(text=f"返却期限: {return_time_str}")
+                
+                # 埋め込みメッセージをDMで送信
+                await interaction.user.send(embed=dm_embed)
+                await interaction.followup.send("アカウント情報をDMに送信しました。", ephemeral=True)
+            except discord.errors.Forbidden:
+                # DMが送信できない場合は従来通り（埋め込み形式で）
+                embed = discord.Embed(
+                    title=f"アカウント情報: {selected_account['name']}",
+                    description="**注意:** DMが無効になっているため、このメッセージが公開されることはありません。",
+                    color=0x00ff00
+                )
+                
+                # アカウント情報（DMと同じ内容）
+                embed.add_field(
+                    name="基本情報",
+                    value=(
+                        f"**Name:** {selected_account['name']}\n"
+                        f"**ID:** {selected_account['id']}\n"
+                        f"**Password:** {selected_account['password']}\n"
+                        f"**Rank:** {selected_account['rank']}{' (自動更新済み)' if rank_update_success else ''}"
+                    ),
+                    inline=False
+                )
+                
+                if "val_username" in selected_account and "val_tag" in selected_account:
+                    embed.add_field(
+                        name="Valorant アカウント",
+                        value=f"{selected_account['val_username']}#{selected_account['val_tag']}",
+                        inline=False
+                    )
+                
+                if rank_info:
+                    embed.add_field(
+                        name="Valorant詳細情報",
+                        value=(
+                            f"**現在のランク:** {rank_info['current_rank']}\n"
+                            f"**ティア内ランキング:** {rank_info['tier_ranking']}\n"
+                            f"**最後のゲームでのMMR変化:** {rank_info['mmr_change']}\n"
+                            f"**ELO:** {rank_info['elo']}\n"
+                            f"**過去最高ランク:** {rank_info['highest_rank']} (シーズン: {rank_info['highest_rank_season']})"
+                        ),
+                        inline=False
+                    )
+                elif "val_username" in selected_account and "val_tag" in selected_account:
+                    embed.add_field(
+                        name="注意",
+                        value="Valorantの詳細情報を取得できませんでした。",
+                        inline=False
+                    )
+                
+                embed.set_footer(text=f"返却期限: {return_time_str}")
+                
+                await interaction.followup.send(embed=embed, ephemeral=True)
+
+            # チャンネルにメンション付きメッセージを埋め込み形式で送信
+            embed = discord.Embed(
+                title="アカウント借用通知",
+                description=f"{interaction.user.mention} が **{selected_account['name']}** を借りました！",
+                color=0x00ff00  # 緑色
             )
+            embed.set_footer(text=f"返却期限: {return_time_str}")
+            await interaction.channel.send(embed=embed)
 
     view = discord.ui.View()
     view.add_item(AccountDropdown())
@@ -585,15 +700,21 @@ async def update_ranks(interaction: discord.Interaction, status: str = None):
     
     # チャンネルにも通知（ランクが更新されたアカウントがある場合のみ）
     if updated_accounts:
-        channel_message = f"**{interaction.user.display_name} がアカウントのランク情報を更新しました**\n"
-        channel_message += f"更新されたアカウント: {len(updated_accounts)}件\n"
+        embed = discord.Embed(
+            title="ランク情報更新通知",
+            description=f"**{interaction.user.display_name} がアカウントのランク情報を更新しました**\n更新されたアカウント: {len(updated_accounts)}件",
+            color=0x0099ff  # 青色
+        )
+        
+        account_list = ""
         for acc in updated_accounts[:10]:  # 長すぎる場合は最初の10件のみ表示
-            channel_message += f"- {acc['name']}: {acc['old_rank']} → {acc['new_rank']}\n"
+            account_list += f"- {acc['name']}: {acc['old_rank']} → {acc['new_rank']}\n"
         
         if len(updated_accounts) > 10:
-            channel_message += f"...ほか {len(updated_accounts) - 10}件\n"
+            account_list += f"...ほか {len(updated_accounts) - 10}件\n"
         
-        await interaction.channel.send(channel_message)
+        embed.add_field(name="更新されたアカウント", value=account_list, inline=False)
+        await interaction.channel.send(embed=embed)
 
 # -------------------------------
 # /return_account コマンド（アカウント返却）
@@ -747,7 +868,6 @@ async def return_account(interaction: discord.Interaction):
                 rank_status = " (手動更新)"
                 
             reply_message = f"アカウント **{account['name']}** を返却しました。\n**新しいランク:** {new_rank}{rank_status}"
-            channel_message = f"{user.mention if user else '不明なユーザー'} が **{account['name']}** を返却しました！\n**更新後のランク:** {new_rank}{rank_status}"
             
             # Valorantの詳細情報がある場合は追加
             if self.rank_info:
@@ -759,17 +879,95 @@ async def return_account(interaction: discord.Interaction):
                     f"**過去最高ランク:** {self.rank_info['highest_rank']} (シーズン: {self.rank_info['highest_rank_season']})"
                 )
                 reply_message += rank_details
-                channel_message += rank_details
-
-            # ユーザーに返却完了メッセージを送信
-            await interaction.response.send_message(
-                reply_message,
-                ephemeral=True
-            )
             
-            # チャンネルが存在すれば返却通知を送信
+            # ユーザーに返却完了メッセージを埋め込み形式で送信
+            try:
+                # 埋め込みメッセージを作成
+                dm_embed = discord.Embed(
+                    title=f"アカウント返却完了: {account['name']}",
+                    description=f"アカウント **{account['name']}** を返却しました。",
+                    color=0xff9900  # オレンジ色
+                )
+                
+                # ランク情報フィールド
+                dm_embed.add_field(
+                    name="更新後のランク", 
+                    value=f"{new_rank}{rank_status}", 
+                    inline=False
+                )
+                
+                # Valorantの詳細情報フィールド（存在する場合）
+                if self.rank_info:
+                    dm_embed.add_field(
+                        name="Valorant詳細情報",
+                        value=(
+                            f"**ティア内ランキング:** {self.rank_info['tier_ranking']}\n"
+                            f"**最後のゲームでのMMR変化:** {self.rank_info['mmr_change']}\n"
+                            f"**ELO:** {self.rank_info['elo']}\n"
+                            f"**過去最高ランク:** {self.rank_info['highest_rank']} (シーズン: {self.rank_info['highest_rank_season']})"
+                        ),
+                        inline=False
+                    )
+                
+                # 返却日時をフッターに表示
+                dm_embed.set_footer(text=f"返却日時: {datetime.datetime.now(TOKYO_TZ).strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                
+                # 埋め込みメッセージをDMで送信
+                await interaction.user.send(embed=dm_embed)
+                await interaction.response.send_message("アカウント返却情報をDMに送信しました。", ephemeral=True)
+            except discord.errors.Forbidden:
+                # DMが送信できない場合は従来通り（埋め込み形式で）
+                embed = discord.Embed(
+                    title=f"アカウント返却完了: {account['name']}",
+                    description="**注意:** DMが無効になっているため、このメッセージが公開されることはありません。",
+                    color=0xff9900
+                )
+                
+                # ランク情報とその他の詳細を追加
+                embed.add_field(
+                    name="返却情報", 
+                    value=f"アカウント **{account['name']}** を返却しました。\n**新しいランク:** {new_rank}{rank_status}", 
+                    inline=False
+                )
+                
+                if self.rank_info:
+                    embed.add_field(
+                        name="Valorant詳細情報",
+                        value=(
+                            f"**ティア内ランキング:** {self.rank_info['tier_ranking']}\n"
+                            f"**最後のゲームでのMMR変化:** {self.rank_info['mmr_change']}\n"
+                            f"**ELO:** {self.rank_info['elo']}\n"
+                            f"**過去最高ランク:** {self.rank_info['highest_rank']} (シーズン: {self.rank_info['highest_rank_season']})"
+                        ),
+                        inline=False
+                    )
+                
+                embed.set_footer(text=f"返却日時: {datetime.datetime.now(TOKYO_TZ).strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+
+            # チャンネルが存在すれば返却通知を埋め込み形式で送信
             if channel:
-                await channel.send(channel_message)
+                embed = discord.Embed(
+                    title="アカウント返却通知",
+                    description=f"{user.mention if user else '不明なユーザー'} が **{account['name']}** を返却しました！",
+                    color=0xff9900  # オレンジ色
+                )
+                embed.add_field(name="更新後のランク", value=f"{new_rank}{rank_status}", inline=False)
+                
+                if self.rank_info:
+                    embed.add_field(
+                        name="Valorant詳細情報",
+                        value=(
+                            f"**ティア内ランキング:** {self.rank_info['tier_ranking']}\n"
+                            f"**最後のゲームでのMMR変化:** {self.rank_info['mmr_change']}\n"
+                            f"**ELO:** {self.rank_info['elo']}\n"
+                            f"**過去最高ランク:** {self.rank_info['highest_rank']} (シーズン: {self.rank_info['highest_rank_season']})"
+                        ),
+                        inline=False
+                    )
+                
+                await channel.send(embed=embed)
             else:
                 logging.warning("アカウント返却: チャンネルが見つからないため、返却通知を送信できません")
 
